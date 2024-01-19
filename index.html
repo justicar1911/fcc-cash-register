@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="nthanhnghia1911@gmail.com">
+  <meta name="description" content="https://cash-register.freecodecamp.rocks/">
+  <title>Cash Register</title>
+
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+
+<body>
+  <main>
+    <img class="logo" src="https://cdn.freecodecamp.org/platform/universal/fcc_primary.svg" alt="free-code-camp logo">
+    <h2 class="title">Cash Register Project</h2>
+
+    <div id="change-due"></div>
+
+    <form action="javascript:void(0)" method="get">
+      <label for="cash">Enter cash from customer:</label>
+      <input type="number" name="cash" id="cash">
+      <br>
+      <button type="submit" id="purchase-btn">Purchase</button>
+    </form>
+
+    <section class="drawer">
+      <div class="screen">
+        <p>Total: $<span id="priceSpan"></span></p>
+      </div>
+
+      <div class="neck"></div>
+
+      <div class="body">
+        <div class="button">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+
+        <div id="cash-in-balance">
+          <h2>Change in drawer:</h2>
+        </div>
+      </div>
+
+      <div class="safe">
+        <div></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const changeDue = document.getElementById("change-due");
+    const cash = document.getElementById("cash");
+    const purchaseBtn = document.getElementById("purchase-btn");
+    const priceSpan = document.getElementById("priceSpan");
+    const cashInBalance = document.getElementById("cash-in-balance");
+
+    let price = 19.5;
+    let cid = [["PENNY", 0.5], ["NICKEL", 0], ["DIME", 0], ["QUARTER", 0], ["ONE", 0], ["FIVE", 0], ["TEN", 0], ["TWENTY", 0], ["ONE HUNDRED", 0]]
+    const rules = [["PENNY", 0.01], ["NICKEL", 0.05], ["DIME", 0.1], ["QUARTER", 0.25], ["ONE", 1], ["FIVE", 5], ["TEN", 10], ["TWENTY", 20], ["ONE HUNDRED", 100]];
+
+
+    // Render the inial value base on the price and cid value.
+    const render = () => {
+      priceSpan.textContent = `${price}`;
+      let unitArr = ["Pennies", "Nickels", "Dimes", "Quarters", "Ones", "Fives", "Tens", "Twenties", "Hundreds"];
+      cid.forEach((unit, index) => {
+        cashInBalance.innerHTML += `<p>${unitArr[index]}: $<span id="cid-${index}">${unit[1]}</span></p>`;
+      });
+    };
+
+    // Merge the cid array and rules array to reduce complexity
+    const mergeArr = (arr, arr2) => arr.map(value => [...value, arr2.find(item => item[0] === value[0])[1]]);
+    const combineArr = mergeArr(cid, rules).reverse();
+    
+    // Update the cid for the final call
+    const updateArr = (arr, arr2) => {
+      arr2.forEach(([currency, amount]) => {
+        const index = arr.findIndex(entry => entry[0] === currency);
+        if (index !== -1) {
+          arr[index][1] = amount;
+        }
+      });
+      return arr;
+    }
+
+    // Update the .change-due div content
+    const updateChangeDue = msg => {
+      changeDue.innerHTML = msg;
+      cid.forEach((unit, index) => {
+        document.getElementById(`cid-${index}`).textContent = unit[1]
+      })
+    }
+
+    // Check number input from user
+    const checkNumber = () => {
+      const changeValue = parseFloat(cash.value - price).toFixed(2);
+      if (cash.value == "") {
+        return;
+      }
+      if (changeValue < 0) {
+        alert("Customer does not have enough money to purchase the item");
+        return;
+      }
+      if (changeValue == 0.00) {
+        let msg = `<p>No change due - customer paid with exact cash</p>`;
+        updateChangeDue(msg);
+        return;
+      }
+
+      checkChange(changeValue, combineArr);
+    }
+
+    // Helper function to get the total balance of array
+    const sumBalance = arr => parseFloat((arr.reduce((acc, element) => acc + +element[1], 0)).toFixed(2))
+
+    // Main function to determine date in the cid array and .change-due div content
+    const checkChange = (numb, arr) => {
+      numb = (+numb).toFixed(2);
+      const totalBalance = sumBalance(arr);
+      const result = arr.filter(element => +numb >= element[2]);
+      const currentBalance = sumBalance(result);
+      const changeArr = [];
+      let msg = "";
+
+      if (+numb > totalBalance || +numb > currentBalance) {
+        msg = `<p>Status: INSUFFICIENT_FUNDS</p>`;
+        return updateChangeDue(msg);
+      }
+
+      msg = (numb == totalBalance) ? `<p>Status: CLOSED</p>` : `<p>Status: OPEN</p>`
+
+      result.forEach(element => {
+        let total = 0;
+
+        while (element[1] > 0 && +numb >= element[2]) {
+          element[1] -= parseFloat(element[2].toFixed(2));
+          element[1] = parseFloat(element[1].toFixed(2))
+          numb -= element[2];
+          numb = parseFloat(numb.toFixed(2));
+          total += element[2];
+          total = parseFloat(total.toFixed(2))
+        }
+
+        changeArr.push([element[0], element[1], total]);
+      })
+      
+      changeArr.forEach(array => msg += `<p>${array[0]}: $${array[2].toFixed(2)}`);
+      cid = updateArr(cid, changeArr);
+      updateChangeDue(msg);
+    }
+
+    window.addEventListener("load", () => {
+      render();
+    })
+
+    purchaseBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      checkNumber();
+      cash.value = "";
+    })
+  </script>
+</body>
+
+</html>
